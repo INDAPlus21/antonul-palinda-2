@@ -22,15 +22,18 @@ func main() {
 	before := time.Now()
 	ch := make(chan string)
 	wgp := new(sync.WaitGroup)
+	wgPog := new(sync.WaitGroup)
+	wgPog.Add(consumers)
 	wgp.Add(producers)
 	for i := 0; i < producers; i++ {
 		go Produce("p"+strconv.Itoa(i), strings/producers, ch, wgp)
 	}
 	for i := 0; i < consumers; i++ {
-		go Consume("c"+strconv.Itoa(i), ch)
+		go Consume("c"+strconv.Itoa(i), ch, wgPog)
 	}
 	wgp.Wait() // Wait for all producers to finish.
 	close(ch)
+	wgPog.Wait()
 	fmt.Println("time:", time.Now().Sub(before))
 }
 
@@ -44,11 +47,12 @@ func Produce(id string, n int, ch chan<- string, wg *sync.WaitGroup) {
 }
 
 // Consume prints strings received from the channel until the channel is closed.
-func Consume(id string, ch <-chan string) {
+func Consume(id string, ch <-chan string, wg *sync.WaitGroup) {
 	for s := range ch {
 		fmt.Println(id, "received", s)
 		RandomSleep(100) // Simulate time to consume data.
 	}
+	wg.Done()
 }
 
 // RandomSleep waits for x ms, where x is a random number, 0 < x < n,
